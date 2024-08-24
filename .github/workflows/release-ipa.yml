@@ -1,0 +1,60 @@
+name: Release ipa
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Expo prebuild
+        run: npx expo prebuild --platform ios
+
+      - name: Set Xcode environment
+        run: |
+          SCHEME=$(node -e "console.log(require('@expo/config-plugins').IOSConfig.BuildScheme.getSchemesFromXcodeproj(__dirname).at(0))")
+          APP_NAME=$(node -e "console.log(require('./app.json').expo.name)")
+          echo "SCHEME=$SCHEME" >> $GITHUB_ENV
+          echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
+          echo -e "App Name: $APP_NAME\nXcode Scheme: $SCHEME"
+
+      - name: Xcode build
+        run: cd ios && xcodebuild -scheme ${{ env.SCHEME }} -workspace ${{ env.SCHEME }}.xcworkspace -configuration Release clean archive -archivePath "build/${{ env.SCHEME }}.xcarchive" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+      - name: Convert app to ipa
+        run: |
+          cd ios
+          mkdir build/Payload
+          mv build/${{ env.SCHEME }}.xcarchive/Products/Applications/${{ env.SCHEME }}.app build/Payload/${{ env.APP_NAME }}.app
+          cd build
+          zip -r ${{ env.APP_NAME }}.ipa Payload/
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          generate_release_notes: true
+          files: |
+            ios/build/${{ env.APP_NAME }}.ipa
