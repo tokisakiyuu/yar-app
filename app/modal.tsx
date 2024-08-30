@@ -11,7 +11,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native'
-import useTheBook from './hooks/useTheBook'
 
 export default function Page() {
   const inputRef = useRef<TextInput>(null)
@@ -21,7 +20,6 @@ export default function Page() {
   const [prefix, setPrefix] = useState('-')
   const [amountText, setAmountText] = useState('')
   const [selection, setSelection] = useState({ start: 0, end: 0 })
-  useTheBook()
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
