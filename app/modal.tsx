@@ -4,22 +4,67 @@ import {
   Button,
   InputAccessoryView,
   Keyboard,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   Text,
   TextInput,
+  TextInputTextInputEventData,
   TouchableWithoutFeedback,
   View,
+  useWindowDimensions,
 } from 'react-native'
 
 export default function Page() {
   const inputRef = useRef<TextInput>(null)
-  const [selectedKind, setSelectedKind] = useState<string>(
-    KINDS.at(0) as string,
-  )
+  const [kind, setKind] = useState<string>(KINDS.at(0) as string)
+  const [remark, setRemark] = useState('')
   const [prefix, setPrefix] = useState('-')
   const [amountText, setAmountText] = useState('')
-  const [selection, setSelection] = useState({ start: 0, end: 0 })
+  const [caretPos, setCaretPos] = useState(0)
+  const { width } = useWindowDimensions()
+
+  const popChar = () => {
+    if (!amountText) return
+    const offset = amountText.length - 1
+    setAmountText(amountText.substring(0, offset))
+    setCaretPos(offset)
+  }
+
+  const pushNumber = (numChar: string) => {
+    const num = Number(numChar)
+    if (!isNumberChar(numChar) || num > 9) return
+    setAmountText(amountText + num)
+    setCaretPos(caretPos + 1)
+  }
+
+  const pushChar = (char: string) => {
+    if (!char) return
+    setAmountText(amountText + char)
+    setCaretPos(caretPos + 1)
+  }
+
+  const handleTextInput = (
+    e: NativeSyntheticEvent<TextInputTextInputEventData>,
+  ) => {
+    const char = e.nativeEvent.text
+    if (!char) return popChar()
+    const prevInputChar = amountText.at(amountText.length - 1) ?? ''
+    if (
+      char === '.' &&
+      prevInputChar &&
+      isNumberChar(prevInputChar) &&
+      !amountText.includes('.')
+    )
+      return pushChar('.')
+    return pushNumber(char)
+  }
+
+  const handleSubmit = () => {
+    console.log('amount:', Number(`${prefix}${amountText}`))
+    console.log('kind', kind)
+    console.log('remark', remark)
+  }
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -37,12 +82,9 @@ export default function Page() {
                 textContentType="none"
                 autoComplete="off"
                 className="leading-none text-[46px] text-right"
-                selection={selection}
+                selection={{ start: caretPos, end: caretPos }}
                 value={amountText}
-                onChangeText={text => {
-                  setAmountText(text)
-                  setSelection({ start: text.length, end: text.length })
-                }}
+                onTextInput={handleTextInput}
               />
             </View>
           </Pressable>
@@ -52,22 +94,22 @@ export default function Page() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View className="w-3" />
             <View className="flex-row gap-x-4">
-              {KINDS.map(kind => (
+              {KINDS.map(k => (
                 <View
-                  key={kind}
+                  key={k}
                   className={clsx(
                     'rounded-md  p-3',
-                    selectedKind === kind ? 'bg-gray-800' : 'bg-gray-200',
+                    k === kind ? 'bg-gray-800' : 'bg-gray-200',
                   )}
-                  onTouchStart={() => setSelectedKind(kind)}
+                  onTouchStart={() => setKind(k)}
                 >
                   <Text
                     className={clsx(
                       'text-[20px] leading-none m-auto',
-                      selectedKind === kind && 'text-white',
+                      k === kind && 'text-white',
                     )}
                   >
-                    {kind}
+                    {k}
                   </Text>
                 </View>
               ))}
@@ -82,22 +124,24 @@ export default function Page() {
               multiline
               placeholder="Remark"
               className="leading-[30px] min-h-[120px] text-[26px]"
+              value={remark}
+              onChangeText={setRemark}
             />
           </View>
         </View>
 
         <View className="mt-5 px-3">
           <View className="bg-blue-500 rounded-md">
-            <Button title="Create" color="white" />
+            <Button title="Create" color="white" onPress={handleSubmit} />
           </View>
         </View>
 
         <InputAccessoryView nativeID="how_much_input">
-          <View className="bg-gray-300 text-xl p-2 w-[100vw]">
-            <Pressable
-              className="mx-auto"
-              onPress={() => setPrefix(prefix === '-' ? '+' : '-')}
-            >
+          <View
+            className="bg-gray-300 text-xl p-2 flex-row justify-center"
+            style={{ width }}
+          >
+            <Pressable onPress={() => setPrefix(prefix === '-' ? '+' : '-')}>
               <Text className="text-xl font-bold tracking-[8px]">+/-</Text>
             </Pressable>
           </View>
@@ -105,6 +149,10 @@ export default function Page() {
       </View>
     </TouchableWithoutFeedback>
   )
+}
+
+function isNumberChar(numChar: string) {
+  return !Number.isNaN(Number(numChar))
 }
 
 const KINDS = '餐饮/日用/交通/购物/娱乐/通信/理财/社交/医疗'.split('/')

@@ -30,7 +30,7 @@ jobs:
         run: pnpm install
 
       - name: Expo prebuild
-        run: npx expo prebuild --platform ios
+        run: npx expo prebuild --platform ios --clean
 
       - name: Set Xcode environment
         run: |
