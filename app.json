@@ -31,7 +31,7 @@
       [
         "expo-dev-launcher",
         {
-          "launchMode": "launcher"
+          "launchMode": "most-recent"
         }
       ]
     ]
