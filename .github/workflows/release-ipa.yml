@@ -50,6 +50,7 @@ jobs:
           mv build/${{ env.SCHEME }}.xcarchive/Products/Applications/${{ env.SCHEME }}.app build/Payload/${{ env.APP_NAME }}.app
           cd build
           zip -r ${{ env.APP_NAME }}.ipa Payload/
+          zip -r ${{ env.APP_NAME }}.zip ${{ env.APP_NAME }}.ipa
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -58,3 +59,4 @@ jobs:
           generate_release_notes: true
           files: |
             ios/build/${{ env.APP_NAME }}.ipa
+            ios/build/${{ env.APP_NAME }}.zip
